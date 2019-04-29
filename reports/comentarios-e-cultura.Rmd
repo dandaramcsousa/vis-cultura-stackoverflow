@@ -1,16 +1,18 @@
 ---
-title: "ComentÃ¡rios e cultura"
+title: "Comentários e cultura"
 output:
     html_document:
     df_print: paged
 theme: sandstone
+author: Dandara Sousa
 ---
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(here)
 library(viridis)
-source(here::here("code/lib.R"))
+library(plotly)
+source(here::here("code/import_data.R"))
 theme_set(theme_bw())
 
 knitr::opts_chunk$set(tidy = FALSE,
@@ -33,22 +35,125 @@ dados = read_csv(
     )
 ) %>% 
     filter(usuarios > 200)
-glimpse(dados)
+#glimpse(dados)
 ```
 
-Estamos interessados na relaÃ§Ã£o entre quanto as pessoas de diferentes paÃ­ses comentam em questÃµes dos outros. A proporÃ§Ã£o das pessoas do paÃ­s que comentou nas questÃµes de outros estÃ¡ medido na variÃ¡vel `comentaram_prop`. 
+Estamos interessados na relação entre quanto as pessoas de diferentes países comentam em questões dos outros. A proporção das pessoas do país que comentou nas questões de outros está medido na variável `comentaram_prop`. 
 
-Considerando essa variÃ¡vel, queremos examinar a relaÃ§Ã£o entre ela e o quÃ£o hierÃ¡rquicas sÃ£o as relaÃ§Ãµes em um paÃ­s (`PDI`). Queremos tambÃ©m levar em conta o quanto as pessoas daquele paÃ­s tÃªm acesso Ã  Internet (`Internet`) e qual o tamanho da base de dados que detectamos daquele paÃ­s (`usuarios`). 
+Considerando essa variável, queremos examinar a relaçao entre ela e o quão hierárquicas são as relações em um país (`PDI`). Queremos também levar em conta o quanto as pessoas daquele país têm acesso à Internet (`Internet`) e qual o tamanho da base de dados que detectamos daquele país (`usuarios`). 
 
-## Examinando essa relaÃ§Ã£o
+## Examinando essa relação
 
-FaÃ§a uma visualizaÃ§Ã£o que usa os princÃ­pios de eficÃ¡cia no projeto de visualizaÃ§Ãµes para facilitar as comparaÃ§Ãµes que vocÃª acha que sÃ£o as mais importantes para entendermos esse contexto. 
+Faça uma visualização que usa os princípios de eficácia no projeto de visualizações para facilitar as comparações que você acha que são as mais importantes para entendermos esse contexto.
+
+```{r}
+dados %>%
+    ggplot(aes(x = comentaram_prop*100, y = PDI)) +
+    geom_point(aes(color = Internet, size = usuarios), alpha = 0.7) +
+    labs(
+        x = "Proporção dos comentários das pessoas de um país (%)",
+        y = "PDI",
+        color = "Internet",
+        size = "Usuários"
+    ) +
+    theme(legend.title = element_text(size = 8),
+          legend.text = element_text(size = 8))
+```
+
+Na visualização acima utilizei posição, área e saturação. A posição foi utilizada para mostrar a relação principal.
 
 ## Outras formas de ver
 
-Em seguida, faÃ§a 5 visualizaÃ§Ãµes que usem as mesmas variÃ¡veis e tambÃ©m pontos, mas que sejam **menos eficazes** que a que vocÃª escolheu acima. 
+Em seguida, faça 5 visualizações que usem as mesmas variáveis e também pontos, mas que sejam **menos eficazes** que a que você escolheu acima.
 
-## BÃ´nus
+_Algumas visualizações terão valores NA uma vez que a relação pode ser vazia._
 
-Inclua o continente dos paÃ­ses (`six_regions`) na visualizaÃ§Ã£o.
+#### Dificultando a visualização da relação principal
+
+Abaixo, a relação `comentaram_prop` x `PDI` fica em segundo plano:
+
+```{r}
+dados %>%
+    ggplot(aes(color = comentaram_prop, size = PDI, x = Internet, y = usuarios)) +
+    geom_point() +
+    labs(
+        color = "Comentários das pessoas de um país (%)",
+        size = "PDI",
+        x = "Internet",
+        y = "Usuários"
+    ) +
+    theme(legend.title = element_text(size = 8),
+          legend.text = element_text(size = 8))
+```
+
+Aqui, o excesso de informação (mais um gráfico sobreposto) dificulta o entendimento principal. 
+
+```{r}
+dados %>%
+    ggplot(aes(x = comentaram_prop*100, y = PDI)) +
+    geom_line() +
+    geom_point(aes(color = Internet, size = usuarios), alpha = 0.7) +
+    labs(
+        x = "Proporção dos comentários das pessoas de um país (%)",
+        y = "PDI",
+        color = "Internet",
+        size = "Usuários"
+    ) +
+    theme(legend.title = element_text(size = 8),
+          legend.text = element_text(size = 8))
+```
+
+####Utilizando a dimensão 3D sem necessidade:
+
+```{r}
+library("plot3D")
+scatter3D(x = dados$comentaram_prop*100, y = dados$PDI, z = dados$usuarios, col.var = dados$Internet, 
+          clab = c("Internet"),  bty = "g", phi = 0,
+          xlab = "Comentários das pessoas de um país (%)",
+          ylab ="PDI", zlab = "Usuarios")
+```
+
+```{r}
+plot_ly(dados, x = ~comentaram_prop*100, y = ~PDI, z = ~Internet, color = ~usuarios) %>%
+    add_markers()
+```
+
+
+#### Tratando as variáveis da forma errada
+
+Abaixo, tratando a variável `Internet` como discreta.
+```{r}
+dados %>%
+    ggplot(aes(x = comentaram_prop*100, y = PDI)) +
+    geom_point(aes(color = as.factor(Internet), size = usuarios), alpha = 0.7)
+    
+```
+
+## Bônus
+
+Inclua o continente dos países (`six_regions`) na visualização.
+
+Os dados NA estão para mostrar a ausência de mapeamento em dados.
+
+```{r}
+dados$six_regions <- gsub("america", "America", dados$six_regions)
+dados$six_regions <- gsub("east_asia_pacific", "East Asia Pacific", dados$six_regions)
+dados$six_regions <- gsub("europe_central_asia", "Europe Central Asia", dados$six_regions)
+dados$six_regions <- gsub("middle_east_north_africa", "Middle East North Africa", dados$six_regions)
+dados$six_regions <- gsub("south_asia", "South Asia", dados$six_regions)
+dados$six_regions <- gsub("sub_saharan_africa", "Sub Saharan Africa", dados$six_regions)
+
+dados %>%
+    ggplot(aes(x = comentaram_prop*100, y = PDI)) +
+    geom_point( aes(color = Internet, size = usuarios), alpha = 0.7) +
+    facet_wrap(six_regions~., ncol = 2) +
+    labs(
+        x = "Proporção dos comentários das pessoas de um país (%)",
+        y = "PDI",
+        color = "Internet",
+        size = "Usuários"
+    ) +
+    theme(legend.title = element_text(size = 8),
+          legend.text = element_text(size = 8))
+```
 
